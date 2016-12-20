@@ -124,6 +124,29 @@ NSString * const SWHttpTrafficRecorderErrorDomain           = @"RECORDER_ERROR_D
     self.isRecording = NO;
 }
 
+#if defined(__IPHONE_7_0) || defined(__MAC_10_9)
+- (void)setEnabled:(BOOL)enabled forConfig:(NSURLSessionConfiguration*)sessionConfig{
+    // Runtime check to make sure the API is available on this version
+    if (   [sessionConfig respondsToSelector:@selector(protocolClasses)]
+        && [sessionConfig respondsToSelector:@selector(setProtocolClasses:)]){
+        NSMutableArray * urlProtocolClasses = [NSMutableArray arrayWithArray:sessionConfig.protocolClasses];
+        Class protoCls = SWRecordingProtocol.class;
+        if (enabled && ![urlProtocolClasses containsObject:protoCls]){
+            [urlProtocolClasses insertObject:protoCls atIndex:0];
+        }
+        else if (!enabled && [urlProtocolClasses containsObject:protoCls]){
+            [urlProtocolClasses removeObject:protoCls];
+        }
+        sessionConfig.protocolClasses = urlProtocolClasses;
+    }
+    else{
+        NSLog(@"[SWTrafficRecorder] %@ is only available when running on iOS7+/OSX9+. "
+              @"Use conditions like 'if ([NSURLSessionConfiguration class])' to only call "
+              @"this method if the user is running iOS7+/OSX9+.", NSStringFromSelector(_cmd));
+    }
+}
+#endif
+
 - (int)increaseFileNo{
     @synchronized(self) {
         return self.fileNo++;
