@@ -22,6 +22,8 @@
  *
  ***********************************************************************************/
 
+
+
 #import <Foundation/Foundation.h>
 
 #if defined(__IPHONE_7_0) || defined(__MAC_10_9)
@@ -41,6 +43,11 @@
 typedef NSURLSessionConfiguration*(*SessionConfigConstructor)(id,SEL);
 static SessionConfigConstructor orig_defaultSessionConfiguration;
 
+static BOOL isRunningTests(void) {
+    NSDictionary* env = [[NSProcessInfo processInfo] environment];
+    return (env[@"STAcceptanceTesting"] != nil);
+}
+
 static NSURLSessionConfiguration* SWHttp_defaultSessionConfiguration(id self, SEL _cmd)
 {
     // call original method
@@ -57,11 +64,13 @@ static NSURLSessionConfiguration* SWHttp_defaultSessionConfiguration(id self, SE
 
 +(void)load
 {
-    orig_defaultSessionConfiguration = (SessionConfigConstructor)ReplaceMethod(
-                                           @selector(defaultSessionConfiguration),
-                                           (IMP)SWHttp_defaultSessionConfiguration,
-                                           [NSURLSessionConfiguration class],
-                                           YES);
+    if (isRunningTests()) {
+        orig_defaultSessionConfiguration = (SessionConfigConstructor)ReplaceMethod(
+                                                                                   @selector(defaultSessionConfiguration),
+                                                                                   (IMP)SWHttp_defaultSessionConfiguration,
+                                                                                   [NSURLSessionConfiguration class],
+                                                                                   YES);
+    }
 }
 
 @end
